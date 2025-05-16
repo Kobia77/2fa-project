@@ -22,6 +22,7 @@ export default [
       "@next/next/no-img-element": "off",
       "prefer-const": "off",
       "@typescript-eslint/no-require-imports": "off",
+
     },
   },
 ];
