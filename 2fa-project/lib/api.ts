@@ -64,6 +64,7 @@ export async function verifyTOTP(token: string) {
   });
 }
 
+// Backup Code API functions
 export async function verifyBackupCode(backupCode: string) {
   return fetchApi("/api/auth/verify-backup-code", {
     method: "POST",
