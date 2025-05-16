@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "SecureKey | Modern Two-Factor Authentication",
+  title: "SecureKey",
   description:
     "A professional two-factor authentication system with advanced security features",
 };
