@@ -68,24 +68,33 @@ export async function POST(request: Request) {
 
     // Remove the used backup code
     user.backupCodes.splice(index, 1);
+
+    // Reset 2FA settings after backup code use
+    user.isTotpEnabled = false;
+    user.totpSecret = undefined;
+
     const saveResult = await user.save();
     console.log("User save result:", !!saveResult);
     console.log(
       "Remaining backup codes after removal:",
       user.backupCodes.length
     );
+    console.log("2FA has been disabled for security reasons");
 
-    // Update session with TOTP verified
+    // Update session with TOTP verified and disabled
     const updatedSession = {
       ...session,
       isTotpVerified: true,
+      isTotpEnabled: false,
     };
 
     // Create successful response
     const response = NextResponse.json({
       success: true,
-      message: "Backup code verification successful",
+      message:
+        "Backup code verification successful. 2FA has been disabled for security reasons.",
       remainingCodes: user.backupCodes.length,
+      totpDisabled: true,
     });
 
     // Add updated session cookie to response
