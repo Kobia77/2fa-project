@@ -3,6 +3,11 @@ import connectToDatabase from "@/lib/mongodb";
 import User from "@/models/User";
 import { comparePassword } from "@/lib/auth";
 import { createSessionResponse } from "@/lib/session";
+import {
+  generateVerificationToken,
+  sendEmail,
+  generateVerificationEmailHtml,
+} from "@/lib/email";
 
 export async function POST(request: Request) {
   try {
@@ -40,11 +45,41 @@ export async function POST(request: Request) {
       );
     }
 
+    let emailVerificationSent = false;
+    if (!user.isEmailVerified) {
+      if (
+        !user.emailVerificationToken ||
+        !user.emailVerificationExpires ||
+        user.emailVerificationExpires < new Date()
+      ) {
+        const emailVerificationToken = generateVerificationToken();
+        const emailVerificationExpires = new Date(
+          Date.now() + 24 * 60 * 60 * 1000
+        );
+
+        user.emailVerificationToken = emailVerificationToken;
+        user.emailVerificationExpires = emailVerificationExpires;
+        await user.save();
+
+        const verificationHtml = generateVerificationEmailHtml(
+          emailVerificationToken
+        );
+        const emailResult = await sendEmail({
+          to: email,
+          subject: "Verify your email address",
+          html: verificationHtml,
+        });
+
+        emailVerificationSent = emailResult.success;
+      }
+    }
+
     // Create session data
     const sessionData = {
       userId: user._id.toString(),
       email: user.email,
       isTotpEnabled: user.isTotpEnabled,
+      isEmailVerified: user.isEmailVerified,
       // Only mark as verified if TOTP is not enabled yet
       isTotpVerified: !user.isTotpEnabled,
       isLoggedIn: true,
@@ -54,6 +89,8 @@ export async function POST(request: Request) {
     const response = NextResponse.json({
       success: true,
       isTotpEnabled: user.isTotpEnabled,
+      isEmailVerified: user.isEmailVerified,
+      emailVerificationSent: emailVerificationSent,
     });
 
     // Add session cookie to response

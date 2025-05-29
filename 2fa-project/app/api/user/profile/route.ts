@@ -27,6 +27,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       email: user.email,
       isTotpEnabled: user.isTotpEnabled,
+      isEmailVerified: user.isEmailVerified,
     });
   } catch (error) {
     console.error("Get user profile error:", error);

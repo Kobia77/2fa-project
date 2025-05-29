@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import User from "@/models/User";
 import { hashPassword, generateBackupCodes, hashBackupCode } from "@/lib/auth";
+import {
+  sendEmail,
+  generateVerificationEmailHtml,
+  generateVerificationToken,
+} from "@/lib/email";
 
 // Password validation function
 function validatePassword(password: string): {
@@ -81,17 +86,25 @@ export async function POST(request: Request) {
     const hashedBackupCodes = backupCodes.map((code) => hashBackupCode(code));
     console.log("Hashed backup codes:", hashedBackupCodes);
 
-    // Create user document first without backup codes to ensure it's valid
+    // Create email verification token
+    const emailVerificationToken = generateVerificationToken();
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // Valid for 24 hours
+
+    // Create user document with email verification data
     const userData = {
       email,
       password: hashedPassword,
       isTotpEnabled: false,
       backupCodes: hashedBackupCodes,
+      isEmailVerified: false,
+      emailVerificationToken,
+      emailVerificationExpires,
     };
 
     console.log("Creating user with data:", {
       ...userData,
       password: "[REDACTED]",
+      emailVerificationToken: "[REDACTED]",
     });
 
     // Create new user
@@ -100,6 +113,18 @@ export async function POST(request: Request) {
     // Verify the user was created with backup codes
     console.log("User created with ID:", newUser._id);
     console.log("User has backup codes:", newUser.backupCodes?.length || 0);
+
+    // Send verification email
+    const verificationHtml = generateVerificationEmailHtml(
+      emailVerificationToken
+    );
+    const emailResult = await sendEmail({
+      to: email,
+      subject: "Verify your email address",
+      html: verificationHtml,
+    });
+
+    console.log("Email verification result:", emailResult);
 
     // Double check by fetching the user again
     const savedUser = await User.findById(newUser._id);
@@ -111,8 +136,10 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         success: true,
-        message: "User registered successfully",
+        message:
+          "User registered successfully. Please check your email to verify your account.",
         backupCodes, // Return plain text backup codes to be shown once
+        emailVerificationSent: emailResult.success,
       },
       { status: 201 }
     );

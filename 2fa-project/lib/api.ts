@@ -38,6 +38,12 @@ export async function logout() {
   });
 }
 
+export async function resendVerificationEmail() {
+  return fetchApi("/api/auth/resend-verification", {
+    method: "POST",
+  });
+}
+
 export async function getUserData() {
   return fetchApi("/api/user/profile", {
     method: "GET",
@@ -54,6 +60,12 @@ export async function enableTOTP(token: string) {
   return fetchApi("/api/auth/setup-2fa", {
     method: "POST",
     body: JSON.stringify({ token }),
+  });
+}
+
+export async function disable2FA() {
+  return fetchApi("/api/auth/disable-2fa", {
+    method: "POST",
   });
 }
 

@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const [userData, setUserData] = useState<{
     email: string;
     isTotpEnabled: boolean;
+    isEmailVerified: boolean;
   } | null>(null);
   const [isDataLoading, setIsDataLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -26,6 +27,8 @@ export default function DashboardPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [notification, setNotification] = useState<string | null>(null);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [isDisabling2FA, setIsDisabling2FA] = useState(false);
 
   useEffect(() => {
     // Check for notifications from URL parameters
@@ -70,7 +73,44 @@ export default function DashboardPage() {
   };
 
   const handle2FASetup = () => {
+    if (!userData?.isEmailVerified) {
+      setNotification("Please verify your email before setting up 2FA.");
+      return;
+    }
     router.push("/dashboard/setup-2fa");
+  };
+
+  const handleDisable2FA = async () => {
+    if (!userData?.isTotpEnabled) return;
+
+    const isConfirmed = window.confirm(
+      "Are you sure you want to disable two-factor authentication? This will make your account less secure."
+    );
+
+    if (!isConfirmed) return;
+
+    setIsDisabling2FA(true);
+
+    try {
+      await api.disable2FA();
+
+      // Update local user data
+      setUserData((prevData) =>
+        prevData ? { ...prevData, isTotpEnabled: false } : null
+      );
+
+      setNotification(
+        "Two-factor authentication has been disabled successfully."
+      );
+    } catch (error) {
+      setNotification(
+        error instanceof Error
+          ? `Failed to disable 2FA: ${error.message}`
+          : "Failed to disable two-factor authentication."
+      );
+    } finally {
+      setIsDisabling2FA(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -92,6 +132,24 @@ export default function DashboardPage() {
       );
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (isResendingVerification) return;
+    setIsResendingVerification(true);
+
+    try {
+      await api.resendVerificationEmail();
+      setNotification("Verification email sent. Please check your inbox.");
+    } catch (error) {
+      setNotification(
+        error instanceof Error
+          ? `Failed to send verification email: ${error.message}`
+          : "Failed to send verification email."
+      );
+    } finally {
+      setIsResendingVerification(false);
     }
   };
 
@@ -198,164 +256,198 @@ export default function DashboardPage() {
 
           <div className="mb-6">
             <h1 className="text-2xl font-bold">Dashboard</h1>
-            <p className="text-[var(--neutral-500)]">
-              Manage your account security
+            <p className="text-[var(--neutral-600)] dark:text-[var(--neutral-400)]">
+              Manage your account security settings
             </p>
           </div>
 
-          <div className="space-y-6">
-            {isDataLoading ? (
-              <Card variant="default" className="animate-pulse">
-                <CardContent className="flex items-center justify-center h-48">
-                  <svg
-                    className="animate-spin h-8 w-8 text-[var(--primary)]"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
+          <div className="grid grid-cols-1 gap-6">
+            {/* Email Verification */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <CardTitle as="h2">Email Verification</CardTitle>
+                  {userData?.isEmailVerified ? (
+                    <CardBadge color="success">Verified</CardBadge>
+                  ) : (
+                    <CardBadge color="warning">Not Verified</CardBadge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <div className="text-sm text-[var(--neutral-600)] dark:text-[var(--neutral-400)]">
+                    {userData?.isEmailVerified ? (
+                      <p>Your email has been verified.</p>
+                    ) : (
+                      <>
+                        <p>
+                          Your email address has not been verified. Please check
+                          your inbox for a verification email, or click the
+                          button below to send a new verification link to:{" "}
+                          <span className="font-semibold">
+                            {userData?.email}
+                          </span>
+                        </p>
+                        <div className="mt-4">
+                          <Button
+                            variant="outline"
+                            onClick={handleResendVerification}
+                            loading={isResendingVerification}
+                          >
+                            Resend Verification Email
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Two-Factor Authentication */}
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <CardTitle as="h2">Two-Factor Authentication</CardTitle>
+                  {userData?.isTotpEnabled ? (
+                    <CardBadge color="success">Enabled</CardBadge>
+                  ) : (
+                    <CardBadge color="neutral">Disabled</CardBadge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <div className="text-sm text-[var(--neutral-600)] dark:text-[var(--neutral-400)]">
+                    {userData?.isTotpEnabled ? (
+                      <p>
+                        Two-factor authentication is currently enabled for your
+                        account. This adds an extra layer of security by
+                        requiring a verification code from your authenticator
+                        app.
+                      </p>
+                    ) : (
+                      <p>
+                        Add an extra layer of security to your account by
+                        enabling two-factor authentication. When enabled, you'll
+                        be required to provide a verification code from your
+                        authenticator app.
+                        {!userData?.isEmailVerified && (
+                          <span className="block mt-2 text-[var(--warning)]">
+                            You need to verify your email address before
+                            enabling 2FA.
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* 2FA Actions */}
+                <div className="mt-2">
+                  {userData?.isTotpEnabled ? (
+                    <div className="flex items-center gap-3">
+                      <Button variant="outline" disabled>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-5 h-5 mr-1.5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.746 3.746 0 011.043 3.296A3.745 3.745 0 0121 12z"
+                          />
+                        </svg>
+                        2FA Enabled
+                      </Button>
+                      <Button
+                        variant="danger"
+                        onClick={handleDisable2FA}
+                        loading={isDisabling2FA}
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                          className="w-5 h-5 mr-1.5"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"
+                          />
+                        </svg>
+                        Disable 2FA
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="default"
+                      onClick={handle2FASetup}
+                      disabled={isDataLoading || !userData?.isEmailVerified}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="w-5 h-5 mr-1.5"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                      Setup 2FA
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Danger Zone Card */}
+            {userData && !isDataLoading && (
+              <Card
+                variant="default"
+                className="overflow-hidden mt-8 border-[var(--error)] border-opacity-40"
+              >
+                <CardHeader>
+                  <CardTitle className="text-[var(--error)]">
+                    Danger Zone
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-medium">Delete Account</h3>
+                      <p className="text-sm text-[var(--neutral-500)]">
+                        Permanently delete your account and all data
+                      </p>
+                    </div>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => setShowDeleteModal(true)}
+                    >
+                      Delete Account
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
-            ) : (
-              <>
-                {/* Account Status Card */}
-                <Card variant="default" className="overflow-hidden">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle>Welcome, {userData?.email}</CardTitle>
-                        <p className="text-[var(--neutral-500)] mt-1">
-                          Here's your security status
-                        </p>
-                      </div>
-                      <CardBadge
-                        variant={
-                          userData?.isTotpEnabled ? "success" : "warning"
-                        }
-                      >
-                        {userData?.isTotpEnabled
-                          ? "2FA Enabled"
-                          : "2FA Disabled"}
-                      </CardBadge>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent>
-                    <Card
-                      variant="flat"
-                      className="border border-[var(--border-light)] dark:border-[var(--border-dark)]"
-                    >
-                      <CardContent className="p-5">
-                        <div className="flex items-start space-x-4">
-                          <div
-                            className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                              userData?.isTotpEnabled
-                                ? "bg-[var(--success)] bg-opacity-10"
-                                : "bg-[var(--warning)] bg-opacity-10"
-                            }`}
-                          >
-                            {userData?.isTotpEnabled ? (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="w-6 h-6 text-[var(--success)]"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M12.516 2.17a.75.75 0 00-1.032 0 11.209 11.209 0 01-7.877 3.08.75.75 0 00-.722.515A12.74 12.74 0 002.25 9.75c0 5.942 4.064 10.933 9.563 12.348a.75.75 0 00.674 0c5.499-1.415 9.563-6.406 9.563-12.348 0-1.39-.223-2.73-.635-3.985a.75.75 0 00-.722-.516l-.143.001c-2.996 0-5.717-1.17-7.734-3.08zm3.094 8.016a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            ) : (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                className="w-6 h-6 text-[var(--warning)]"
-                              >
-                                <path
-                                  fillRule="evenodd"
-                                  d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.598-4.5L9.4 3.003zM12 8.25a.75.75 0 01.75.75v3.75a.75.75 0 01-1.5 0V9a.75.75 0 01.75-.75zm0 8.25a.75.75 0 100-1.5.75.75 0 000 1.5z"
-                                  clipRule="evenodd"
-                                />
-                              </svg>
-                            )}
-                          </div>
-
-                          <div className="flex-1">
-                            <h3 className="font-medium text-lg">
-                              {userData?.isTotpEnabled
-                                ? "Two-Factor Authentication is Active"
-                                : "Two-Factor Authentication is Not Enabled"}
-                            </h3>
-                            <p className="text-sm text-[var(--neutral-500)] mt-1">
-                              {userData?.isTotpEnabled
-                                ? "Your account is secured with two-factor authentication."
-                                : "Your account is not protected with two-factor authentication. We recommend enabling 2FA for additional security."}
-                            </p>
-
-                            {!userData?.isTotpEnabled && (
-                              <Button
-                                variant="accent"
-                                size="sm"
-                                className="mt-4"
-                                onClick={handle2FASetup}
-                              >
-                                Enable 2FA
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </CardContent>
-                </Card>
-
-                {/* Danger Zone Card */}
-                {userData && !isDataLoading && (
-                  <Card
-                    variant="default"
-                    className="overflow-hidden mt-8 border-[var(--error)] border-opacity-40"
-                  >
-                    <CardHeader>
-                      <CardTitle className="text-[var(--error)]">
-                        Danger Zone
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-medium">Delete Account</h3>
-                          <p className="text-sm text-[var(--neutral-500)]">
-                            Permanently delete your account and all data
-                          </p>
-                        </div>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => setShowDeleteModal(true)}
-                        >
-                          Delete Account
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </>
             )}
           </div>
         </div>
