@@ -141,58 +141,87 @@ export default function RegisterPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5 py-4">
-              <div className="bg-[var(--warning)] bg-opacity-10 border border-[var(--warning)] border-opacity-20 rounded-md p-3 mb-4 text-sm">
-                <div className="flex items-center mb-2">
+              <div className="space-y-6">
+                <div className="bg-[var(--success)] bg-opacity-10 text-[var(--foreground)] border border-[var(--success)] border-opacity-20 rounded-md p-4 mb-6">
+                  <div className="flex items-start">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="w-5 h-5 mr-2 flex-shrink-0 text-[var(--success)] mt-0.5"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <div>
+                      <p className="font-medium">
+                        Account created successfully!
+                      </p>
+                      <p className="text-sm mt-1">
+                        A verification email has been sent to {email}. Please
+                        check your inbox and verify your email address to
+                        activate your account.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[var(--warning)] bg-opacity-10 border border-[var(--warning)] border-opacity-20 rounded-md p-3 mb-4 text-sm">
+                  <div className="flex items-center mb-2">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="w-5 h-5 mr-2 flex-shrink-0 text-[var(--warning)]"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span className="font-semibold text-[var(--warning)]">
+                      Important
+                    </span>
+                  </div>
+                  <p className="text-[var(--foreground)]">
+                    You won't be able to see these codes again! Please store
+                    them securely.
+                  </p>
+                </div>
+
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-4 grid grid-cols-2 gap-2">
+                  {backupCodes.map((code, index) => (
+                    <div
+                      key={index}
+                      className="font-mono text-center py-1 px-2 border border-gray-200 dark:border-gray-700 rounded"
+                    >
+                      {code}
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  variant="outline"
+                  fullWidth
+                  onClick={copyBackupCodes}
+                  className="mt-4"
+                >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     viewBox="0 0 20 20"
                     fill="currentColor"
-                    className="w-5 h-5 mr-2 flex-shrink-0 text-[var(--warning)]"
+                    className="w-5 h-5 mr-2"
                   >
-                    <path
-                      fillRule="evenodd"
-                      d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
-                      clipRule="evenodd"
-                    />
+                    <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
+                    <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
                   </svg>
-                  <span className="font-semibold text-[var(--warning)]">
-                    Important
-                  </span>
-                </div>
-                <p className="text-[var(--foreground)]">
-                  You won't be able to see these codes again! Please store them
-                  securely.
-                </p>
+                  Copy All Codes
+                </Button>
               </div>
-
-              <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-4 grid grid-cols-2 gap-2">
-                {backupCodes.map((code, index) => (
-                  <div
-                    key={index}
-                    className="font-mono text-center py-1 px-2 border border-gray-200 dark:border-gray-700 rounded"
-                  >
-                    {code}
-                  </div>
-                ))}
-              </div>
-
-              <Button
-                variant="outline"
-                fullWidth
-                onClick={copyBackupCodes}
-                className="mt-4"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="w-5 h-5 mr-2"
-                >
-                  <path d="M7 3.5A1.5 1.5 0 018.5 2h3.879a1.5 1.5 0 011.06.44l3.122 3.12A1.5 1.5 0 0117 6.622V12.5a1.5 1.5 0 01-1.5 1.5h-1v-3.379a3 3 0 00-.879-2.121L10.5 5.379A3 3 0 008.379 4.5H7v-1z" />
-                  <path d="M4.5 6A1.5 1.5 0 003 7.5v9A1.5 1.5 0 004.5 18h7a1.5 1.5 0 001.5-1.5v-5.879a1.5 1.5 0 00-.44-1.06L9.44 6.439A1.5 1.5 0 008.378 6H4.5z" />
-                </svg>
-                Copy All Codes
-              </Button>
             </CardContent>
             <CardFooter bordered alignment="center">
               <Button

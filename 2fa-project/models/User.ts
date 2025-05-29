@@ -6,6 +6,9 @@ export interface IUser extends mongoose.Document {
   totpSecret?: string;
   isTotpEnabled: boolean;
   backupCodes: string[];
+  isEmailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +35,18 @@ const UserSchema = new mongoose.Schema<IUser>(
     backupCodes: {
       type: [String],
       default: [],
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerificationToken: {
+      type: String,
+      required: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      required: false,
     },
   },
   { timestamps: true }

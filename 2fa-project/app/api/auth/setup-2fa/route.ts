@@ -36,6 +36,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // בדיקה שהמייל מאומת
+    if (!user.isEmailVerified) {
+      return NextResponse.json(
+        { error: "Please verify your email before setting up 2FA" },
+        { status: 403 }
+      );
+    }
+
     // Generate TOTP secret
     const secret = generateTOTPSecret(user.email);
 
@@ -87,6 +95,14 @@ export async function POST(request: Request) {
     const user = await User.findById(session.userId);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // בדיקה שהמייל מאומת
+    if (!user.isEmailVerified) {
+      return NextResponse.json(
+        { error: "Please verify your email before setting up 2FA" },
+        { status: 403 }
+      );
     }
 
     // Verify TOTP
