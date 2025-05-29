@@ -45,27 +45,22 @@ export async function POST(request: Request) {
       );
     }
 
-    // בדיקה אם המייל לא מאומת - אך עדיין מאפשרים כניסה
     let emailVerificationSent = false;
     if (!user.isEmailVerified) {
-      // שליחת מייל אימות חדש אם הטוקן פג תוקף או לא קיים
       if (
         !user.emailVerificationToken ||
         !user.emailVerificationExpires ||
         user.emailVerificationExpires < new Date()
       ) {
-        // יצירת טוקן אימות חדש
         const emailVerificationToken = generateVerificationToken();
         const emailVerificationExpires = new Date(
           Date.now() + 24 * 60 * 60 * 1000
-        ); // 24 שעות
+        );
 
-        // עדכון הטוקן בפרופיל המשתמש
         user.emailVerificationToken = emailVerificationToken;
         user.emailVerificationExpires = emailVerificationExpires;
         await user.save();
 
-        // שליחת מייל אימות חדש
         const verificationHtml = generateVerificationEmailHtml(
           emailVerificationToken
         );

@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // אם המייל כבר מאומת, אין צורך לשלוח שוב
+    // If email is already verified, no need to send again
     if (user.isEmailVerified) {
       return NextResponse.json(
         { error: "Email is already verified" },
@@ -36,16 +36,16 @@ export async function POST(request: Request) {
       );
     }
 
-    // יצירת טוקן אימות חדש
+    // Create new verification token
     const emailVerificationToken = generateVerificationToken();
-    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // תוקף של 24 שעות
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // Valid for 24 hours
 
-    // עדכון הטוקן בפרופיל המשתמש
+    // Update token in user profile
     user.emailVerificationToken = emailVerificationToken;
     user.emailVerificationExpires = emailVerificationExpires;
     await user.save();
 
-    // שליחת מייל אימות
+    // Send verification email
     const verificationHtml = generateVerificationEmailHtml(
       emailVerificationToken
     );

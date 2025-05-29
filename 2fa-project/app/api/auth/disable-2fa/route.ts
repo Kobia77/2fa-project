@@ -6,7 +6,6 @@ import { createSessionResponse } from "@/lib/session";
 
 export async function POST(request: Request) {
   try {
-    // בדיקת המשתמש מהסשן
     const session = await verifySession(request);
     if (!session) {
       return NextResponse.json(
@@ -15,16 +14,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // התחברות למסד הנתונים
     await connectToDatabase();
 
-    // מציאת המשתמש
     const user = await User.findById(session.userId);
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // בדיקה אם ה-2FA כבר כבוי
+    // Check if 2FA is already disabled
     if (!user.isTotpEnabled) {
       return NextResponse.json(
         { error: "Two-factor authentication is already disabled" },
@@ -32,25 +29,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // ביטול ה-2FA
+    // Disable 2FA
     user.isTotpEnabled = false;
-    user.totpSecret = undefined; // מחיקת הסוד המשמש ליצירת קודים
+    user.totpSecret = undefined; // Delete the secret used to generate codes
     await user.save();
 
-    // עדכון הסשן
+    // Update the session
     const updatedSession = {
       ...session,
       isTotpEnabled: false,
-      isTotpVerified: true, // משתמש לא צריך לאמת TOTP כי הוא כבוי
+      isTotpVerified: true, // User doesn't need to verify TOTP because it's disabled
     };
 
-    // יצירת תשובה
+    // Create a response
     const response = NextResponse.json({
       success: true,
       message: "Two-factor authentication has been disabled successfully",
     });
 
-    // הוספת הסשן המעודכן ומחזר את התשובה
+    // Add the updated session and return the response
     return await createSessionResponse(updatedSession, response);
   } catch (error) {
     console.error("Disable 2FA error:", error);

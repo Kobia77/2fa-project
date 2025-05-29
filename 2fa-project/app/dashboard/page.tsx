@@ -94,7 +94,7 @@ export default function DashboardPage() {
     try {
       await api.disable2FA();
 
-      // עדכון הנתונים המקומיים של המשתמש
+      // Update local user data
       setUserData((prevData) =>
         prevData ? { ...prevData, isTotpEnabled: false } : null
       );

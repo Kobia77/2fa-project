@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 
-// בסביבת פיתוח - שימוש ב-Ethereal לשליחת מיילים לבדיקה
-// בסביבת ייצור - יש להשתמש בשירות מיילים אמיתי
+// In development environment - using Ethereal for testing emails
+// In production environment - a real email service should be used
 export async function createTestAccount() {
   const testAccount = await nodemailer.createTestAccount();
 
@@ -16,9 +16,9 @@ export async function createTestAccount() {
   };
 }
 
-// פונקציה ליצירת טרנספורטר למשלוח מיילים
+// Function to create a transporter for sending emails
 export async function getEmailTransporter() {
-  // בסביבת ייצור יש להשתמש בפרטי התחברות אמיתיים
+  // In production environment use real credentials
   if (
     process.env.EMAIL_HOST &&
     process.env.EMAIL_USER &&
@@ -34,7 +34,7 @@ export async function getEmailTransporter() {
       },
     });
   } else {
-    // בסביבת פיתוח נשתמש ב-Ethereal (מאפשר לראות את המיילים שנשלחו בתיבת מייל וירטואלית)
+    // In development environment we'll use Ethereal (allows viewing sent emails in a virtual mailbox)
     const testConfig = await createTestAccount();
     return nodemailer.createTransport(testConfig);
   }
@@ -63,7 +63,7 @@ export async function sendEmail({ to, subject, html, from }: EmailData) {
 
     console.log("Email sent: %s", info.messageId);
 
-    // בסביבת פיתוח עם Ethereal, מדפיס קישור לצפייה במייל הנשלח
+    // In development environment with Ethereal, print link to view the sent email
     if (info.messageId && info.response.includes("ethereal")) {
       console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
       return {
@@ -106,6 +106,6 @@ export function generateVerificationEmailHtml(token: string) {
 }
 
 export function generateVerificationToken(): string {
-  // יצירת מחרוזת אקראית באורך 32 תווים
+  // Generate a random string of 32 characters
   return require("crypto").randomBytes(16).toString("hex");
 }

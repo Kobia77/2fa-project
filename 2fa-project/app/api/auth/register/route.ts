@@ -86,9 +86,9 @@ export async function POST(request: Request) {
     const hashedBackupCodes = backupCodes.map((code) => hashBackupCode(code));
     console.log("Hashed backup codes:", hashedBackupCodes);
 
-    // יצירת טוקן לאימות המייל
+    // Create email verification token
     const emailVerificationToken = generateVerificationToken();
-    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // תוקף של 24 שעות
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // Valid for 24 hours
 
     // Create user document with email verification data
     const userData = {
@@ -114,7 +114,7 @@ export async function POST(request: Request) {
     console.log("User created with ID:", newUser._id);
     console.log("User has backup codes:", newUser.backupCodes?.length || 0);
 
-    // שליחת מייל אימות
+    // Send verification email
     const verificationHtml = generateVerificationEmailHtml(
       emailVerificationToken
     );

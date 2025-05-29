@@ -4,11 +4,11 @@ import User from "@/models/User";
 
 export async function GET(request: Request) {
   try {
-    // קבלת טוקן האימות מפרמטר ה-URL
+    // Get verification token from URL parameter
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token");
 
-    // בדיקת תקינות בסיסית
+    // Basic validation
     if (!token) {
       return NextResponse.json(
         { error: "Verification token is required" },
@@ -16,13 +16,13 @@ export async function GET(request: Request) {
       );
     }
 
-    // התחברות למסד נתונים
+    // Connect to database
     await connectToDatabase();
 
-    // חיפוש משתמש עם טוקן האימות
+    // Find user with verification token
     const user = await User.findOne({
       emailVerificationToken: token,
-      emailVerificationExpires: { $gt: Date.now() }, // בדיקה שהטוקן עדיין בתוקף
+      emailVerificationExpires: { $gt: Date.now() }, // Check that the token is still valid
     });
 
     if (!user) {
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // עדכון סטטוס אימות המייל של המשתמש
+    // Update user's email verification status
     user.isEmailVerified = true;
     user.emailVerificationToken = undefined;
     user.emailVerificationExpires = undefined;
