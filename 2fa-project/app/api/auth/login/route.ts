@@ -8,6 +8,11 @@ import {
   sendEmail,
   generateVerificationEmailHtml,
 } from "@/lib/email";
+import {
+  isAccountLocked,
+  handleFailedAttempt,
+  resetFailedAttempts,
+} from "@/lib/accountLockout";
 
 export async function POST(request: Request) {
   try {
@@ -36,14 +41,41 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if account is locked
+    if (await isAccountLocked(user)) {
+      const lockedUntil = user.accountLockedUntil;
+      const timeLeft = lockedUntil
+        ? Math.ceil((lockedUntil.getTime() - Date.now()) / 60000)
+        : 0;
+
+      return NextResponse.json(
+        {
+          error: `Account is temporarily locked due to too many failed login attempts. Please try again later or use the account unlock link sent to your email.`,
+          accountLocked: true,
+          timeLeft: timeLeft, // Minutes left until auto-unlock
+        },
+        { status: 403 }
+      );
+    }
+
     // Verify password
     const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
+      // Handle failed login attempt
+      const isNowLocked = await handleFailedAttempt(user);
+
       return NextResponse.json(
-        { error: "Invalid credentials" },
+        {
+          error: isNowLocked
+            ? "Account has been locked due to too many failed login attempts. An unlock link has been sent to your email."
+            : "Invalid credentials",
+        },
         { status: 401 }
       );
     }
+
+    // Reset failed attempts counter on successful login
+    await resetFailedAttempts(user);
 
     let emailVerificationSent = false;
     if (!user.isEmailVerified) {

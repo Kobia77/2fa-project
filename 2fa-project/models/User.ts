@@ -9,6 +9,10 @@ export interface IUser extends mongoose.Document {
   isEmailVerified: boolean;
   emailVerificationToken?: string;
   emailVerificationExpires?: Date;
+  failedLoginAttempts: number;
+  accountLocked: boolean;
+  accountLockedUntil?: Date;
+  unlockToken?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -46,6 +50,23 @@ const UserSchema = new mongoose.Schema<IUser>(
     },
     emailVerificationExpires: {
       type: Date,
+      required: false,
+    },
+    // Account lockout properties
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+    },
+    accountLocked: {
+      type: Boolean,
+      default: false,
+    },
+    accountLockedUntil: {
+      type: Date,
+      required: false,
+    },
+    unlockToken: {
+      type: String,
       required: false,
     },
   },
