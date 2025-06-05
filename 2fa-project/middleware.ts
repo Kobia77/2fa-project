@@ -4,7 +4,7 @@ import { getIronSession } from "iron-session";
 import { sessionOptions, type SessionData } from "./lib/session";
 
 // Add routes that should be accessible without authentication
-const publicRoutes = ["/login", "/register"];
+const publicRoutes = ["/login", "/register", "/account/unlock"];
 
 // Add routes that only require the initial authentication without 2FA
 const basicAuthRoutes = ["/verify-totp", "/dashboard/setup-2fa"];
@@ -13,7 +13,10 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public routes without authentication
-  if (publicRoutes.includes(pathname)) {
+  if (
+    publicRoutes.includes(pathname) ||
+    pathname.startsWith("/account/unlock")
+  ) {
     return NextResponse.next();
   }
 
@@ -48,6 +51,7 @@ export const config = {
     "/dashboard/:path*",
     "/verify-totp",
     "/profile",
+    "/account/unlock",
     // Add other protected routes here
   ],
 };

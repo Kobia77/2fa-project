@@ -11,7 +11,10 @@ export async function fetchApi(endpoint: string, options: RequestInit = {}) {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.error || "Something went wrong");
+    const error = new Error(data.error || "Something went wrong");
+    // Attach the full error response as cause so it can be accessed in catch blocks
+    error.cause = data;
+    throw error;
   }
 
   return data;
@@ -88,5 +91,13 @@ export async function verifyBackupCode(backupCode: string) {
 export async function deleteAccount() {
   return fetchApi("/api/user/delete-account", {
     method: "DELETE",
+  });
+}
+
+// Account lockout API functions
+export async function unlockAccount(token: string) {
+  return fetchApi("/api/auth/unlock-account", {
+    method: "POST",
+    body: JSON.stringify({ token }),
   });
 }

@@ -22,6 +22,10 @@ export default function VerifyTOTPPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [useBackupCode, setUseBackupCode] = useState(false);
   const [backupCode, setBackupCode] = useState("");
+  const [isAccountLocked, setIsAccountLocked] = useState(false);
+  const [accountLockTimeLeft, setAccountLockTimeLeft] = useState<number | null>(
+    null
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus on input when component loads
@@ -34,6 +38,8 @@ export default function VerifyTOTPPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setIsAccountLocked(false);
+    setAccountLockTimeLeft(null);
 
     if (useBackupCode) {
       if (!backupCode) {
@@ -52,7 +58,26 @@ export default function VerifyTOTPPage() {
           router.push("/dashboard");
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Verification failed");
+        // Check for account lockout error
+        if (err instanceof Error) {
+          // Access the error details from the cause property
+          const errorDetails = err.cause as any;
+
+          if (errorDetails && errorDetails.accountLocked) {
+            setIsAccountLocked(true);
+            if (errorDetails.timeLeft) {
+              setAccountLockTimeLeft(errorDetails.timeLeft);
+            }
+            setError(
+              errorDetails.error ||
+                "Account is temporarily locked due to too many failed attempts"
+            );
+          } else {
+            setError(err.message);
+          }
+        } else {
+          setError("Verification failed");
+        }
       } finally {
         setIsLoading(false);
       }
@@ -73,7 +98,26 @@ export default function VerifyTOTPPage() {
         await api.verifyTOTP(token);
         router.push("/dashboard");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Verification failed");
+        // Check for account lockout error
+        if (err instanceof Error) {
+          // Access the error details from the cause property
+          const errorDetails = err.cause as any;
+
+          if (errorDetails && errorDetails.accountLocked) {
+            setIsAccountLocked(true);
+            if (errorDetails.timeLeft) {
+              setAccountLockTimeLeft(errorDetails.timeLeft);
+            }
+            setError(
+              errorDetails.error ||
+                "Account is temporarily locked due to too many failed attempts"
+            );
+          } else {
+            setError(err.message);
+          }
+        } else {
+          setError("Verification failed");
+        }
       } finally {
         setIsLoading(false);
       }
@@ -104,13 +148,23 @@ export default function VerifyTOTPPage() {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-5 py-4">
               {error && (
-                <div className="bg-[var(--error)] bg-opacity-10 border border-[var(--error)] border-opacity-20 rounded-md p-3 text-sm text-[var(--foreground)]">
-                  <div className="flex items-center">
+                <div
+                  className={`bg-opacity-10 border border-opacity-20 rounded-md p-3 text-sm ${
+                    isAccountLocked
+                      ? "bg-[var(--warning)] border-[var(--warning)]"
+                      : "bg-[var(--error)] border-[var(--error)]"
+                  }`}
+                >
+                  <div className="flex items-start">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 20 20"
                       fill="currentColor"
-                      className="w-5 h-5 mr-2 flex-shrink-0 text-[var(--error)]"
+                      className={`w-5 h-5 mr-2 flex-shrink-0 mt-0.5 ${
+                        isAccountLocked
+                          ? "text-[var(--warning)]"
+                          : "text-[var(--error)]"
+                      }`}
                     >
                       <path
                         fillRule="evenodd"
@@ -118,7 +172,27 @@ export default function VerifyTOTPPage() {
                         clipRule="evenodd"
                       />
                     </svg>
-                    {error}
+                    <div>
+                      <div className="text-[var(--foreground)]">{error}</div>
+
+                      {isAccountLocked && (
+                        <div className="mt-2 text-[var(--neutral-600)]">
+                          {accountLockTimeLeft ? (
+                            <p>
+                              Your account will automatically unlock in
+                              approximately {accountLockTimeLeft}{" "}
+                              {accountLockTimeLeft === 1 ? "minute" : "minutes"}
+                              .
+                            </p>
+                          ) : (
+                            <p>
+                              Please check your email for instructions to unlock
+                              your account.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -136,7 +210,7 @@ export default function VerifyTOTPPage() {
                     required
                     autoComplete="one-time-code"
                   />
-                  <div className="mt-2 bg-[var(--warning)] bg-opacity-10 border border-[var(--warning)] border-opacity-20 rounded-md p-3 text-sm">
+                  <div className="mt-2 bg-[var(--warning)] bg-opacity-10 border border-[var(--warning)] border-opacity-20 rounded-md p-3 text-sm text-sm">
                     <div className="flex items-center">
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
