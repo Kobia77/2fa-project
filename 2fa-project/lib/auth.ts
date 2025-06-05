@@ -127,7 +127,7 @@ export function generateTOTPSecret(email: string) {
 
     // 3) Build the Key-URI
     const label = encodeURIComponent(`2FA App:${email}`);
-    const issuer = encodeURIComponent("YourAppName");
+    const issuer = encodeURIComponent("SecureKey");
     const otpauth_url =
       `otpauth://totp/${label}` + `?secret=${base32Secret}&issuer=${issuer}`;
 
