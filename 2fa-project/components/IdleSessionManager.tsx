@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 
 interface IdleSessionManagerProps {
@@ -40,7 +40,7 @@ export default function IdleSessionManager({
   };
 
   // פונקציית התנתקות
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
@@ -56,7 +56,7 @@ export default function IdleSessionManager({
       // במקרה של כשל, עדיין ננווט לדף הכניסה
       router.push("/login");
     }
-  };
+  }, [router]);
 
   // מעקב אחר פעילות משתמש
   useEffect(() => {
@@ -103,7 +103,13 @@ export default function IdleSessionManager({
     }, intervalMs);
 
     return () => clearInterval(intervalId);
-  }, [timeoutMinutes, checkIntervalSeconds, lastActivity, disabled]);
+  }, [
+    timeoutMinutes,
+    checkIntervalSeconds,
+    lastActivity,
+    disabled,
+    handleLogout,
+  ]);
 
   // קומפוננטה זו לא מציגה UI
   return null;
